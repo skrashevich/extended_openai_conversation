@@ -139,6 +139,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         self.entry = entry
         self.history: dict[str, list[dict]] = {}
         base_url = entry.data.get(CONF_BASE_URL)
+        self.model = entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
         if is_azure(base_url):
             self.client = AsyncAzureOpenAI(
                 api_key=entry.data[CONF_API_KEY],
@@ -330,7 +331,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         n_requests,
     ) -> OpenAIQueryResponse:
         """Process a sentence."""
-        model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
+        # model = self.entry.options.get(CONF_CHAT_MODEL, DEFAULT_CHAT_MODEL)
         max_tokens = self.entry.options.get(CONF_MAX_TOKENS, DEFAULT_MAX_TOKENS)
         top_p = self.entry.options.get(CONF_TOP_P, DEFAULT_TOP_P)
         temperature = self.entry.options.get(CONF_TEMPERATURE, DEFAULT_TEMPERATURE)
@@ -356,10 +357,10 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         if len(functions) == 0:
             tool_kwargs = {}
 
-        _LOGGER.info("Prompt for %s: %s", model, json.dumps(messages))
+        _LOGGER.info("Prompt for %s: %s", self.model, json.dumps(messages))
 
         response: ChatCompletion = await self.client.chat.completions.create(
-            model=model,
+            model=self.model,
             messages=messages,
             max_tokens=max_tokens,
             top_p=top_p,
@@ -367,6 +368,13 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             user=user_input.conversation_id,
             **tool_kwargs,
         )
+
+        if self.model == "gpt-4-0125-preview":
+            _LOGGER.info("Switching to gpt-35-turbo-0125")
+            self.model = "gpt-35-turbo-0125"
+        elif self.model == "gpt-35-turbo-0125":
+            _LOGGER.info("Switching to gpt-4-0125-preview")
+            self.model = "gpt-4-0125-preview"
 
         _LOGGER.info("Response %s", json.dumps(response.model_dump(exclude_none=True)))
 
