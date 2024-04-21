@@ -369,12 +369,12 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             **tool_kwargs,
         )
 
-        if self.model == "gpt-4-0125-preview":
-            _LOGGER.info("Switching to gpt-35-turbo-0125")
-            self.model = "gpt-35-turbo-0125"
-        elif self.model == "gpt-35-turbo-0125":
-            _LOGGER.info("Switching to gpt-4-0125-preview")
-            self.model = "gpt-4-0125-preview"
+        # if self.model == "gpt-4-0125-preview":
+        #     _LOGGER.info("Switching to gpt-35-turbo-0125")
+        #     self.model = "gpt-35-turbo-0125"
+        # elif self.model == "gpt-35-turbo-0125":
+        #     _LOGGER.info("Switching to gpt-4-0125-preview")
+        #     self.model = "gpt-4-0125-preview"
 
         _LOGGER.info("Response %s", json.dumps(response.model_dump(exclude_none=True)))
 
