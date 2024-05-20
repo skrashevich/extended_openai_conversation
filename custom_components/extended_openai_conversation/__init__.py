@@ -363,6 +363,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
             messages=messages,
             max_tokens=max_tokens,
             top_p=top_p,
+            response_format={ "type":"json" },
             temperature=temperature,
             user=user_input.conversation_id,
             **tool_kwargs,
