@@ -267,6 +267,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
         for state in states:
             entity_id = state.entity_id
             entity = entity_registry.async_get(entity_id)
+            attributes = state.attributes  # Get the entity attributes
 
             aliases = []
             if entity and entity.aliases:
@@ -277,6 +278,7 @@ class OpenAIAgent(conversation.AbstractConversationAgent):
                     "entity_id": entity_id,
                     "name": state.name,
                     "state": self.hass.states.get(entity_id).state,
+                    "attributes": attributes,  # Include the attributes
                     "aliases": aliases,
                 }
             )
