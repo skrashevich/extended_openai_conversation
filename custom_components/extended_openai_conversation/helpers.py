@@ -37,7 +37,7 @@ from homeassistant.const import (
     SERVICE_RELOAD,
 )
 from homeassistant.core import HomeAssistant, State
-from homeassistant.exceptions import HomeAssistantError, ServiceNotFound
+from homeassistant.exceptions import HomeAssistantError, ServiceNotFound, ServiceValidationError 
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.script import Script
 from homeassistant.helpers.template import Template
@@ -230,6 +230,36 @@ class NativeFunctionExecutor(FunctionExecutor):
 
         raise NativeNotFound(name)
 
+    RESERVED_KEYS = [
+        'context',
+        'last_updated',
+        'last_changed',
+        'entity_picture',
+        'friendly_name',
+        'icon',
+        'unit_of_measurement',
+        'device_class',
+        'restored',
+        'supported_color_modes',
+        'supported_features',
+    ]
+
+    ALLOWED_KEYS = {
+        "light": {
+            "turn_on": {
+                "entity_id": True,
+                "brightness": True,
+                "color_temp": False,
+                "color_xy": False,
+                "effect": False,
+                "transition": False,
+            },
+            "turn_off": {
+                "entity_id": True,
+            },
+        },
+    }
+
     async def execute_service_single(
         self,
         hass: HomeAssistant,
@@ -237,26 +267,26 @@ class NativeFunctionExecutor(FunctionExecutor):
         service_argument,
         user_input: conversation.ConversationInput,
         exposed_entities,
-    ):
+    ) -> dict[str, Any]:
         domain = service_argument["domain"]
         service = service_argument["service"]
-        service_data = service_argument.get(
-            "service_data", service_argument.get("data", {})
-        )
+        service_data = service_argument.get("service_data", service_argument.get("data", {}))
+    
         entity_id = service_data.get("entity_id", service_argument.get("entity_id"))
-        area_id = service_data.get("area_id")
-        device_id = service_data.get("device_id")
-
         if isinstance(entity_id, str):
             entity_id = [e.strip() for e in entity_id.split(",")]
+    
         service_data["entity_id"] = entity_id
-
-        if entity_id is None and area_id is None and device_id is None:
+    
+        if entity_id is None:
             raise CallServiceError(domain, service, service_data)
         if not hass.services.has_service(domain, service):
             raise ServiceNotFound(domain, service)
-        self.validate_entity_ids(hass, entity_id or [], exposed_entities)
-
+    
+        for attr, value in service_data.copy().items():
+            if attr not in self.ALLOWED_KEYS.get(domain, {}).get(service, {}):
+                service_data.pop(attr)
+    
         try:
             await hass.services.async_call(
                 domain=domain,
@@ -266,8 +296,8 @@ class NativeFunctionExecutor(FunctionExecutor):
             return {"success": True}
         except HomeAssistantError as e:
             _LOGGER.error(e)
-            return {"error": str(e)}
-
+            return {"error": str(e)} 
+    
     async def execute_service(
         self,
         hass: HomeAssistant,
